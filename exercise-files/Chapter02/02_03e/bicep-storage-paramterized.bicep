@@ -1,14 +1,15 @@
 // bicep-storage-parametrized.bicep
 
-param storageName string = 'stparamdemo0521'
-param azureRegion string = 'westus2'
-param stgSKU string = 'Standard_LRS'
+param storageName string = 'mystoragepa1997'
+param azureregion string = 'eastus2'
+param SKUname string = 'Standard_LRS'
+param kind string = 'StorageV2'
 
 resource bicepStorage 'Microsoft.Storage/storageAccounts@2021-02-01' = {
   name: storageName
-  location: azureRegion
-  kind: 'StorageV2'
+  location: azureregion
+  kind: kind
   sku: {
-    name: stgSKU
+    name: SKUname
   }
 }

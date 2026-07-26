@@ -15,4 +15,7 @@ az deployment group create -g 'bicep-chp2-test-westus2' -f .\exercise-files\Chap
 az storage account list --query [].name -o table
 
 # Clean-up resources without a confirmation prompt
-az group delete --name 'bicep-chp2-test-westus2' --yes
+az group delete --name 'testbiceprg' --yes
+
+# Deploy the simple-storage.bicep file to a resource group using a parameter file
+az deployment group create -g 'testbiceprg' -f exercise-files/Chapter02/02_03e/bicep-storage.bicep -p exercise-files/Chapter02/02_03e/bicep-storage-paramterized.bicepparam -c

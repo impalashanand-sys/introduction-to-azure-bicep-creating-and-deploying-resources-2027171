@@ -1,0 +1,332 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "11298079006825781581"
+    }
+  },
+  "parameters": {
+    "sname": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 20
+    },
+    "ssku": {
+      "type": "string",
+      "defaultValue": "StorageV2"
+    },
+    "azureRegion": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure regional location where resource will be deployed"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "test",
+        "prod"
+      ]
+    },
+    "aspName": {
+      "type": "string"
+    },
+    "webAppName": {
+      "type": "string"
+    },
+    "crname": {
+      "type": "string"
+    },
+    "crskuname": {
+      "type": "string"
+    },
+    "adminuserpermission": {
+      "type": "bool",
+      "defaultValue": false
+    }
+  },
+  "variables": {
+    "skuName": "[if(equals(parameters('environment'), 'prod'), 'Standard_GRS', 'Standard_LRS')]",
+    "stgAccountName": "[format('{0}pa{1}', parameters('sname'), parameters('environment'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "web-dev-deployment-resource-group",
+      "location": "[parameters('azureRegion')]",
+      "tags": {
+        "Environment": "test",
+        "Project": "Web-dev-storage resource group"
+      }
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "web-dev-app-deployment-resource-group",
+      "location": "[parameters('azureRegion')]",
+      "tags": {
+        "Environment": "test",
+        "Project": "Web-dev-appservice resource group"
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "storagedeployment",
+      "resourceGroup": "web-dev-deployment-resource-group",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "sname": {
+            "value": "[variables('stgAccountName')]"
+          },
+          "slocation": {
+            "value": "[parameters('azureRegion')]"
+          },
+          "skind": {
+            "value": "[parameters('ssku')]"
+          },
+          "ssku": {
+            "value": "[variables('skuName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "8591223372528666954"
+            }
+          },
+          "parameters": {
+            "sname": {
+              "type": "string"
+            },
+            "slocation": {
+              "type": "string"
+            },
+            "ssku": {
+              "type": "string"
+            },
+            "skind": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2021-02-01",
+              "name": "[parameters('sname')]",
+              "location": "[parameters('slocation')]",
+              "kind": "[parameters('skind')]",
+              "sku": {
+                "name": "[parameters('ssku')]"
+              },
+              "metadata": {
+                "description": "Experimental storage account resources"
+              }
+            }
+          ],
+          "outputs": {
+            "storageId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('sname'))]"
+            },
+            "blobEndPoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', parameters('sname')), '2021-02-01').primaryEndpoints.blob]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'web-dev-deployment-resource-group')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appservicedeplyment",
+      "resourceGroup": "web-dev-app-deployment-resource-group",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "aspName": {
+            "value": "[parameters('aspName')]"
+          },
+          "webAppName": {
+            "value": "[parameters('webAppName')]"
+          },
+          "azureRegion": {
+            "value": "[parameters('azureRegion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "5688965677228603371"
+            }
+          },
+          "parameters": {
+            "aspName": {
+              "type": "string"
+            },
+            "azureRegion": {
+              "type": "string"
+            },
+            "webAppName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2020-12-01",
+              "name": "[parameters('aspName')]",
+              "location": "[parameters('azureRegion')]",
+              "sku": {
+                "name": "F1",
+                "capacity": 1
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2021-01-15",
+              "name": "[parameters('webAppName')]",
+              "location": "[parameters('azureRegion')]",
+              "tags": {
+                "[format('hidden-related:{0}/providers/Microsoft.Web/serverfarms/appServicePlan', resourceGroup().id)]": "Resource"
+              },
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('aspName'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('aspName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "webAppHostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2021-01-15').defaultHostName]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'web-dev-app-deployment-resource-group')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "Containerdeployment",
+      "resourceGroup": "web-dev-deployment-resource-group",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "crname": {
+            "value": "[parameters('crname')]"
+          },
+          "crskuname": {
+            "value": "[parameters('crskuname')]"
+          },
+          "azureregion": {
+            "value": "[parameters('azureRegion')]"
+          },
+          "adminuserpermission": {
+            "value": "[parameters('adminuserpermission')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "2918674992338752271"
+            }
+          },
+          "parameters": {
+            "crname": {
+              "type": "string"
+            },
+            "azureregion": {
+              "type": "string"
+            },
+            "crskuname": {
+              "type": "string"
+            },
+            "adminuserpermission": {
+              "type": "bool",
+              "defaultValue": false
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2021-06-01-preview",
+              "name": "[parameters('crname')]",
+              "location": "[parameters('azureregion')]",
+              "sku": {
+                "name": "[parameters('crskuname')]"
+              },
+              "properties": {
+                "adminUserEnabled": "[parameters('adminuserpermission')]"
+              }
+            }
+          ],
+          "outputs": {
+            "containerregistry": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('crname')), '2021-06-01-preview').loginServer]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'web-dev-deployment-resource-group')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "storageId": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'web-dev-deployment-resource-group'), 'Microsoft.Resources/deployments', 'storagedeployment'), '2025-04-01').outputs.storageId.value]"
+    },
+    "blobEndPoint": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'web-dev-deployment-resource-group'), 'Microsoft.Resources/deployments', 'storagedeployment'), '2025-04-01').outputs.blobEndPoint.value]"
+    },
+    "webAppHostName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'web-dev-app-deployment-resource-group'), 'Microsoft.Resources/deployments', 'appservicedeplyment'), '2025-04-01').outputs.webAppHostName.value]"
+    },
+    "ContainerServerLoginCreds": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, 'web-dev-deployment-resource-group'), 'Microsoft.Resources/deployments', 'Containerdeployment'), '2025-04-01').outputs.containerregistry.value]"
+    }
+  }
+}

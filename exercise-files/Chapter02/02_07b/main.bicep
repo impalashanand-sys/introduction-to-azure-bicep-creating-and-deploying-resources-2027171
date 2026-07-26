@@ -2,7 +2,9 @@
 
 @minLength(3)
 @maxLength(20)
-param storageName string
+param sname string
+
+param ssku string = 'StorageV2'
 
 @description('Azure regional location where resource will be deployed')
 param azureRegion string
@@ -13,43 +15,30 @@ param environment string = 'dev'
 @description('Storage SKU defined based on environment type')
 var skuName = environment == 'prod' ? 'Standard_GRS' : 'Standard_LRS'
 
-var stgAccountName = '${storageName}${environment}'
+var stgAccountName = '${sname}${environment}'
 
 param aspName string // 'mybicep-asp01'
 param webAppName string // 'mybicep-web-app01'
 
-// Experimental storage account resources
-@description('Experimental storage account resources')
-resource bicepStorage 'Microsoft.Storage/storageAccounts@2021-02-01' = {
-  name: stgAccountName
-  location: azureRegion
-  kind: 'StorageV2'
-  sku: {
-    name: skuName
+module storagemodulecall 'bicepstorage.bicep' = {
+  name: 'storagedeployment'
+  params: {
+    sname: stgAccountName
+    slocation:azureRegion
+    skind: skuName
+    ssku: ssku
   }
 }
 
-// Add App Service Plan and Web App
-resource appServicePlan 'Microsoft.Web/serverfarms@2020-12-01' = {
-  name: aspName
-  location: azureRegion
-  sku: {
-    name: 'F1'
-    capacity: 1
+module appserviceresource 'appservice.bicep'= {
+  name: 'appservicedeplyment'
+  params:{
+    aspName:aspName
+    webAppName:webAppName
+    azureRegion:azureRegion
   }
 }
 
-resource webApplication 'Microsoft.Web/sites@2021-01-15' = {
-  name: webAppName
-  location: azureRegion
-  tags: {
-    'hidden-related:${resourceGroup().id}/providers/Microsoft.Web/serverfarms/appServicePlan': 'Resource'
-  }
-  properties: {
-    serverFarmId: appServicePlan.id
-  }
-}
-
-output storageId string = bicepStorage.id
-output blobEndPoint string = bicepStorage.properties.primaryEndpoints.blob
-output webAppHostName string = webApplication.properties.defaultHostName
+output storageId string = storagemodulecall.outputs.storageId
+output blobEndPoint string = storagemodulecall.outputs.blobEndPoint
+output webAppHostName string = appserviceresource.outputs.webAppHostName
